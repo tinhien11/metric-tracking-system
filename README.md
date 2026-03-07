@@ -136,6 +136,47 @@ curl "http://localhost:3000/metrics?userId=user1&type=distance&unit=feet"
 curl "http://localhost:3000/metrics/chart?userId=user1&type=distance&period=2&unit=centimeter"
 ```
 
+
 ---
 
+## System Design
+
+### How a request flows
+
+```
+HTTP Request
+    │
+    ▼
+Controller     ← check input, return error if bad
+    │
+    ▼
+Service        ← run the logic, talk to database
+    │
+    ▼
+SQLite DB      ← save raw value and unit
+    │
+    ▼ (when reading)
+Converter      ← change unit if user asked for one
+```
+
+---
+
+## How Key Parts Work
+
+| Part | How |
+|------|-----|
+| Save & convert | Save raw value + unit. Convert only when reading. Original data never changes. |
+| Distance | Each unit has a ratio to meter. Formula: `result = value × fromRatio / toRatio`. Add new unit = one line. |
+| Temperature | Convert via Celsius: `any → C → any`. Add new unit = two small functions. |
+| Latest per day | Use `MAX(id)` per date — highest ID = last inserted row that day. |
+---
+
+## Trade-offs and Choices
+
+| Choice | Why |
+|--------|-----|
+| SQLite | No setup, works as a local file. With PostgreSQL we could use window functions (`PARTITION BY date`) instead of `MAX(id)`. |
+| Save raw, convert on read | Original data is never changed. Downside: mixed units in one query can give wrong averages — caller should always pass a `unit`. |
+| `MAX(id)` for latest per day | Simple. Works for normal inserts. Relies on insert order. |
+| One table for all types | Easier to add new types later. Separate tables would need separate queries and more code. |
 
