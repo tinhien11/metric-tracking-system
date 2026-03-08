@@ -14,8 +14,8 @@ db.exec(`
     type        TEXT    NOT NULL,
     value       REAL    NOT NULL,
     unit        TEXT    NOT NULL,
-    date        TEXT    NOT NULL,
-    created_at  TEXT    DEFAULT (datetime('now'))
+    date        DATE    NOT NULL,
+    created_at  DATETIME DEFAULT (datetime('now'))
   )
 `);
 
